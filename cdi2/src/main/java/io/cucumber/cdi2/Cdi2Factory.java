@@ -10,18 +10,23 @@ import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Unmanaged;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 @API(status = API.Status.STABLE)
 public final class Cdi2Factory implements ObjectFactory {
 
     private final Map<Class<?>, Unmanaged.UnmanagedInstance<?>> standaloneInstances = new HashMap<>();
+    private Boolean addClasses;
+    private final Set<Class<?>> classes = new HashSet<>();
     private SeContainer container;
 
     @Override
     public void start() {
         if (container == null) {
             SeContainerInitializer initializer = SeContainerInitializer.newInstance();
+            initializer.addBeanClasses(classes.toArray(new Class[classes.size()]));
             container = initializer.initialize();
         }
     }
@@ -41,6 +46,15 @@ public final class Cdi2Factory implements ObjectFactory {
 
     @Override
     public boolean addClass(final Class<?> clazz) {
+    	if (addClasses == null) {
+    		start();
+    		Instance<?> selected = container.select(clazz);
+    		addClasses = selected.isUnsatisfied();
+    		stop();
+    	}
+    	if (addClasses) {
+    		classes.add(clazz);
+    	}
         return true;
     }
 
