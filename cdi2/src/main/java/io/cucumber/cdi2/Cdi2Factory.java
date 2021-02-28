@@ -18,15 +18,15 @@ import java.util.Set;
 public final class Cdi2Factory implements ObjectFactory {
 
     private final Map<Class<?>, Unmanaged.UnmanagedInstance<?>> standaloneInstances = new HashMap<>();
-    private Boolean addClasses;
-    private final Set<Class<?>> classes = new HashSet<>();
+    private final Set<Class<?>> unmanagedclasses = new HashSet<>();
+    private final Set<Class<?>> managedClasses = new HashSet<>();
     private SeContainer container;
 
     @Override
     public void start() {
         if (container == null) {
             SeContainerInitializer initializer = SeContainerInitializer.newInstance();
-            initializer.addBeanClasses(classes.toArray(new Class[classes.size()]));
+            initializer.addBeanClasses(unmanagedclasses.toArray(new Class[unmanagedclasses.size()]));
             container = initializer.initialize();
         }
     }
@@ -46,14 +46,15 @@ public final class Cdi2Factory implements ObjectFactory {
 
     @Override
     public boolean addClass(final Class<?> clazz) {
-    	if (addClasses == null) {
+    	if (!managedClasses.contains(clazz) && !unmanagedclasses.contains(clazz)) {
     		start();
     		Instance<?> selected = container.select(clazz);
-    		addClasses = selected.isUnsatisfied();
+    		if (selected.isUnsatisfied()) {
+    			unmanagedclasses.add(clazz);
+    		} else {
+    			managedClasses.add(clazz);
+    		}
     		stop();
-    	}
-    	if (addClasses) {
-    		classes.add(clazz);
     	}
         return true;
     }
